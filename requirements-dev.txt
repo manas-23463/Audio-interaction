@@ -1,6 +1,8 @@
-elevenlabs==2.5.0
+# Development requirements (for local development with CLI features)
+elevenlabs[pyaudio]==2.5.0
 python-dotenv==1.0.0
 numpy==1.24.3
+sounddevice==0.4.6
 scipy==1.11.1
 openai==1.12.0
 httpx==0.24.1

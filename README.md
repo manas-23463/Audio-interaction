@@ -30,8 +30,15 @@ A real-time, two-way conversational AI system that enables natural voice interac
    ```
 
 2. **Install Python dependencies**
+   
+   **For Web Deployment (Production):**
    ```bash
    pip install -r requirements.txt
+   ```
+   
+   **For Local Development (with CLI features):**
+   ```bash
+   pip install -r requirements-dev.txt
    ```
 
 3. **Install system dependencies** (if needed)
@@ -162,7 +169,8 @@ The following files are included for Render deployment:
 - `render.yaml` - Render configuration
 - `Procfile` - Process definition
 - `runtime.txt` - Python version specification
-- Updated `requirements.txt` with production dependencies
+- `requirements.txt` - Production dependencies (no audio libraries)
+- `requirements-dev.txt` - Development dependencies (includes audio libraries)
 
 ## Project Structure
 
@@ -209,12 +217,17 @@ AUDIO_INTERACTION/
    - This is a dependency version conflict
    - Run: `pip install -r requirements.txt --force-reinstall`
 
-5. **Microphone not working**
+5. **"portaudio.h: No such file or directory" (Render deployment)**
+   - This is expected for web deployment - use `requirements.txt` (not `requirements-dev.txt`)
+   - The web version doesn't need audio libraries
+   - For local development, use `requirements-dev.txt` and install portaudio: `brew install portaudio`
+
+6. **Microphone not working**
    - Check system permissions for microphone access
    - Ensure microphone is not muted
    - Try adjusting `SILENCE_THRESHOLD` in audio_handler.py
 
-6. **WebSocket connection issues on Render**
+7. **WebSocket connection issues on Render**
    - The app uses eventlet for WebSocket support
    - Ensure all environment variables are set correctly
    - Check Render logs for any errors
