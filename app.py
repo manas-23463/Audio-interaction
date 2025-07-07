@@ -14,7 +14,7 @@ import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', logger=True, engineio_logger=True)
 
 # Initialize clients
 elevenlabs_client = ElevenLabsClient()
@@ -24,6 +24,14 @@ conversation_logger = ConversationLogger()
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client disconnected')
 
 @socketio.on('audio_data')
 def handle_audio_data(data):
@@ -83,6 +91,7 @@ def handle_audio_data(data):
             os.unlink(temp_file_path)
             
     except Exception as e:
+        print(f"Error in handle_audio_data: {e}")
         emit('error', {'message': f'Error processing audio: {str(e)}'})
 
 @socketio.on('reset_conversation')
