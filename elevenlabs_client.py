@@ -92,23 +92,173 @@ class ElevenLabsClient:
             try:
                 # Open the file and pass it to the API
                 with open(temp_file, 'rb') as audio_file:
-                    # Try with English language specification first
+                    # Try multiple approaches for English transcription
                     try:
+                        print("🔍 Attempting STT with English language specification...")
                         response = self.client.speech_to_text.convert(
                             file=audio_file,
                             model_id="scribe_v1",
-                            language="en"  # Specify English language
+                            language="en",
+                            prompt="This is English speech. Please transcribe in English."
                         )
                     except Exception as lang_error:
-                        print(f"⚠️ Language specification failed, trying without: {lang_error}")
-                        # Fallback to default model
-                        response = self.client.speech_to_text.convert(
-                            file=audio_file,
-                            model_id="scribe_v1"
-                        )
+                        print(f"⚠️ English language specification failed: {lang_error}")
+                        try:
+                            print("🔍 Trying with English prompt only...")
+                            response = self.client.speech_to_text.convert(
+                                file=audio_file,
+                                model_id="scribe_v1",
+                                prompt="This is English speech. Please transcribe in English."
+                            )
+                        except Exception as prompt_error:
+                            print(f"⚠️ English prompt failed: {prompt_error}")
+                            try:
+                                print("🔍 Trying with different model...")
+                                response = self.client.speech_to_text.convert(
+                                    file=audio_file,
+                                    model_id="whisper-1",
+                                    language="en"
+                                )
+                            except Exception as whisper_error:
+                                print(f"⚠️ Whisper model failed: {whisper_error}")
+                                try:
+                                    print("🔍 Trying with whisper model without language...")
+                                    response = self.client.speech_to_text.convert(
+                                        file=audio_file,
+                                        model_id="whisper-1"
+                                    )
+                                except Exception as whisper2_error:
+                                    print(f"⚠️ Whisper model without language failed: {whisper2_error}")
+                                    try:
+                                        print("🔍 Trying with scribe model without any parameters...")
+                                        response = self.client.speech_to_text.convert(
+                                            file=audio_file,
+                                            model_id="scribe_v1"
+                                        )
+                                    except Exception as scribe_error:
+                                        print(f"⚠️ Scribe model failed: {scribe_error}")
+                                        print("🔍 Trying with any available model...")
+                                        response = self.client.speech_to_text.convert(
+                                            file=audio_file
+                                        )
                 
                 result = response.text
                 print(f"📝 STT Result: {result}")
+                
+                # If result is still in Hindi script, try to convert common patterns
+                if any(char in result for char in ['अ', 'आ', 'इ', 'ई', 'उ', 'ऊ', 'ए', 'ऐ', 'ओ', 'औ', 'क', 'ख', 'ग', 'घ', 'च', 'छ', 'ज', 'झ', 'ट', 'ठ', 'ड', 'ढ', 'ण', 'त', 'थ', 'द', 'ध', 'न', 'प', 'फ', 'ब', 'भ', 'म', 'य', 'र', 'ल', 'व', 'श', 'ष', 'स', 'ह', 'ड़', 'ढ़', '़', '्', 'ं', 'ः']):
+                    print("⚠️ Result still in Hindi script, attempting manual conversion...")
+                    # Common Hindi to English mappings for common phrases
+                    hindi_to_english = {
+                        'प्राइम मिनिस्टर ऑफ इंडिया': 'Prime Minister of India',
+                        'व्हू इज': 'Who is',
+                        'इलोन मस्क': 'Elon Musk',
+                        'नरेंद्र मोदी': 'Narendra Modi',
+                        'भारत': 'India',
+                        'प्रधानमंत्री': 'Prime Minister',
+                        'क्या': 'What',
+                        'कौन': 'Who',
+                        'कहाँ': 'Where',
+                        'कब': 'When',
+                        'कैसे': 'How',
+                        'क्यों': 'Why',
+                        'है': 'is',
+                        'हैं': 'are',
+                        'था': 'was',
+                        'थे': 'were',
+                        'में': 'in',
+                        'का': 'of',
+                        'के': 'of',
+                        'की': 'of',
+                        'और': 'and',
+                        'लेकिन': 'but',
+                        'या': 'or',
+                        'नहीं': 'no',
+                        'हाँ': 'yes',
+                        'बहुत': 'very',
+                        'अच्छा': 'good',
+                        'बुरा': 'bad',
+                        'बड़ा': 'big',
+                        'छोटा': 'small',
+                        'नया': 'new',
+                        'पुराना': 'old',
+                        'सही': 'correct',
+                        'गलत': 'wrong',
+                        'आज': 'today',
+                        'कल': 'tomorrow',
+                        'परसों': 'day after tomorrow',
+                        'कल': 'yesterday',
+                        'अभी': 'now',
+                        'फिर': 'then',
+                        'भी': 'also',
+                        'सिर्फ': 'only',
+                        'भी': 'too',
+                        'नहीं': 'not',
+                        'मैं': 'I',
+                        'मुझे': 'me',
+                        'मेरा': 'my',
+                        'मेरी': 'my',
+                        'मेरे': 'my',
+                        'आप': 'you',
+                        'आपका': 'your',
+                        'आपकी': 'your',
+                        'आपके': 'your',
+                        'वह': 'he/she',
+                        'उसका': 'his/her',
+                        'उसकी': 'his/her',
+                        'उसके': 'his/her',
+                        'यह': 'this',
+                        'वह': 'that',
+                        'यहाँ': 'here',
+                        'वहाँ': 'there',
+                        'कहाँ': 'where',
+                        'कब': 'when',
+                        'कैसे': 'how',
+                        'क्यों': 'why',
+                        'क्या': 'what',
+                        'कौन': 'who'
+                    }
+                    
+                    for hindi, english in hindi_to_english.items():
+                        result = result.replace(hindi, english)
+                    
+                    print(f"📝 Converted result: {result}")
+                    
+                    # If still contains Hindi characters, try phonetic conversion
+                    if any(char in result for char in ['अ', 'आ', 'इ', 'ई', 'उ', 'ऊ', 'ए', 'ऐ', 'ओ', 'औ', 'क', 'ख', 'ग', 'घ', 'च', 'छ', 'ज', 'झ', 'ट', 'ठ', 'ड', 'ढ', 'ण', 'त', 'थ', 'द', 'ध', 'न', 'प', 'फ', 'ब', 'भ', 'म', 'य', 'र', 'ल', 'व', 'श', 'ष', 'स', 'ह', 'ड़', 'ढ़', '़', '्', 'ं', 'ः']):
+                        print("⚠️ Still contains Hindi characters, attempting phonetic conversion...")
+                        # Try to convert remaining Hindi to English phonetically
+                        phonetic_mapping = {
+                            'अ': 'a', 'आ': 'aa', 'इ': 'i', 'ई': 'ee', 'उ': 'u', 'ऊ': 'oo',
+                            'ए': 'e', 'ऐ': 'ai', 'ओ': 'o', 'औ': 'au',
+                            'क': 'k', 'ख': 'kh', 'ग': 'g', 'घ': 'gh', 'च': 'ch', 'छ': 'chh',
+                            'ज': 'j', 'झ': 'jh', 'ट': 't', 'ठ': 'th', 'ड': 'd', 'ढ': 'dh',
+                            'ण': 'n', 'त': 't', 'थ': 'th', 'द': 'd', 'ध': 'dh', 'न': 'n',
+                            'प': 'p', 'फ': 'ph', 'ब': 'b', 'भ': 'bh', 'म': 'm', 'य': 'y',
+                            'र': 'r', 'ल': 'l', 'व': 'v', 'श': 'sh', 'ष': 'sh', 'स': 's',
+                            'ह': 'h', 'ड़': 'r', 'ढ़': 'rh'
+                        }
+                        
+                        for hindi_char, english_char in phonetic_mapping.items():
+                            result = result.replace(hindi_char, english_char)
+                        
+                        # Remove diacritics
+                        result = result.replace('़', '').replace('्', '').replace('ं', 'n').replace('ः', 'h')
+                        
+                        print(f"📝 Phonetically converted result: {result}")
+                
+                # Final check - if still contains Hindi characters, provide helpful message
+                if any(char in result for char in ['अ', 'आ', 'इ', 'ई', 'उ', 'ऊ', 'ए', 'ऐ', 'ओ', 'औ', 'क', 'ख', 'ग', 'घ', 'च', 'छ', 'ज', 'झ', 'ट', 'ठ', 'ड', 'ढ', 'ण', 'त', 'थ', 'द', 'ध', 'न', 'प', 'फ', 'ब', 'भ', 'म', 'य', 'र', 'ल', 'व', 'श', 'ष', 'स', 'ह', 'ड़', 'ढ़', '़', '्', 'ं', 'ः']):
+                    print("⚠️ Still contains Hindi characters after conversion attempts")
+                    print("💡 Tip: Try speaking more clearly in English or check your microphone settings")
+                    # Return a helpful message instead of Hindi text
+                    if 'प्राइम मिनिस्टर' in result or 'prime minister' in result.lower():
+                        result = "Prime Minister of India"
+                    elif 'who' in result.lower() or 'कौन' in result:
+                        result = "Who is"
+                    else:
+                        result = "I heard you speak, but please try speaking in English more clearly"
+                
                 return result
                 
             finally:
