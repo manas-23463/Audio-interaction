@@ -7,13 +7,25 @@ from elevenlabs import client, voices, Voice
 from elevenlabs.text_to_speech import client as tts_client
 from elevenlabs.speech_to_text import client as stt_client
 from config import Config
+import traceback
 
 class ElevenLabsClient:
     def __init__(self):
         self.voice_id = Config.VOICE_ID or "21m00Tcm4TlvDq8ikWAM"  # Default voice ID (Rachel)
         self.agent_id = Config.AGENT_ID
         self.voice = None
-        self.client = client.ElevenLabs(api_key=Config.ELEVENLABS_API_KEY)
+        print(f"🔧 Initializing ElevenLabs client with voice ID: {self.voice_id}")
+        print(f"🔑 API Key configured: {'Yes' if Config.ELEVENLABS_API_KEY else 'No'}")
+        if Config.ELEVENLABS_API_KEY:
+            print(f"🔑 API Key starts with: {Config.ELEVENLABS_API_KEY[:10]}...")
+        
+        try:
+            self.client = client.ElevenLabs(api_key=Config.ELEVENLABS_API_KEY)
+            print("✅ ElevenLabs client initialized successfully")
+        except Exception as e:
+            print(f"❌ Failed to initialize ElevenLabs client: {e}")
+            raise
+        
         self._init_voice()
 
     def _init_voice(self):
@@ -41,6 +53,7 @@ class ElevenLabsClient:
             raise ValueError("No voice selected")
         
         try:
+            print(f"🎵 Starting TTS for text: '{text[:50]}...'")
             # Use higher quality PCM format with correct sample rate
             response = self.client.text_to_speech.convert(
                 voice_id=self.voice.voice_id,
@@ -59,6 +72,7 @@ class ElevenLabsClient:
             
         except Exception as e:
             print(f"❌ TTS Error: {e}")
+            print(f"❌ TTS Error traceback: {traceback.format_exc()}")
             raise
 
     def stt(self, audio: bytes) -> str:
@@ -66,17 +80,31 @@ class ElevenLabsClient:
         import tempfile
         import os
         
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            f.write(audio)
-            temp_file = f.name
-        
         try:
-            # Open the file and pass it to the API
-            with open(temp_file, 'rb') as audio_file:
-                response = self.client.speech_to_text.convert(
-                    file=audio_file,
-                    model_id="scribe_v1"
-                )
-            return response.text
-        finally:
-            os.unlink(temp_file) 
+            print(f"🔍 Starting STT with {len(audio)} bytes of audio")
+            
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                f.write(audio)
+                temp_file = f.name
+            
+            print(f"💾 Created STT temp file: {temp_file}")
+            
+            try:
+                # Open the file and pass it to the API
+                with open(temp_file, 'rb') as audio_file:
+                    response = self.client.speech_to_text.convert(
+                        file=audio_file,
+                        model_id="scribe_v1"
+                    )
+                
+                result = response.text
+                print(f"📝 STT Result: {result}")
+                return result
+                
+            finally:
+                os.unlink(temp_file)
+                
+        except Exception as e:
+            print(f"❌ STT Error: {e}")
+            print(f"❌ STT Error traceback: {traceback.format_exc()}")
+            raise 

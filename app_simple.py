@@ -3,6 +3,7 @@ import base64
 import wave
 import tempfile
 import os
+import traceback
 from elevenlabs_client import ElevenLabsClient
 from openai_client import OpenAIClient
 from conversation_logger import ConversationLogger
@@ -27,19 +28,26 @@ def process_audio():
         if not data or 'audio' not in data:
             return jsonify({'error': 'No audio data provided'}), 400
         
+        print(f"🔍 Processing audio request - data size: {len(data['audio'])}")
+        
         # Decode base64 audio data
         audio_data = base64.b64decode(data['audio'])
+        print(f"🎵 Decoded audio size: {len(audio_data)} bytes")
         
         # Create temporary WAV file
         with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
             temp_file.write(audio_data)
             temp_file_path = temp_file.name
         
+        print(f"💾 Created temp file: {temp_file_path}")
+        
         try:
             # Transcribe audio
+            print("🔎 Starting STT...")
             with open(temp_file_path, 'rb') as audio_file:
                 audio_bytes = audio_file.read()
             transcript = elevenlabs_client.stt(audio_bytes)
+            print(f"📝 Transcript: {transcript}")
             
             if not transcript or not transcript.strip():
                 return jsonify({'error': 'No speech detected'}), 400
@@ -48,11 +56,15 @@ def process_audio():
             conversation_logger.log('User', transcript)
             
             # Generate AI response
+            print("🤖 Generating AI response...")
             response = openai_client.ask(transcript)
+            print(f"🤖 AI Response: {response}")
             conversation_logger.log('AI', response)
             
             # Generate speech
+            print("🗣️ Generating speech...")
             audio_bytes = elevenlabs_client.tts(response)
+            print(f"🎵 Generated {len(audio_bytes)} bytes of audio")
             
             # Save to temporary file
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_audio:
@@ -64,10 +76,14 @@ def process_audio():
                     wav_file.writeframes(audio_bytes)
                 audio_file_path = temp_audio.name
             
+            print(f"💾 Created audio file: {audio_file_path}")
+            
             # Read audio file and encode to base64
             with open(audio_file_path, 'rb') as audio_file:
                 audio_bytes = audio_file.read()
                 audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+            
+            print(f"✅ Successfully processed request")
             
             # Clean up temporary audio file
             os.unlink(audio_file_path)
@@ -83,7 +99,8 @@ def process_audio():
             os.unlink(temp_file_path)
             
     except Exception as e:
-        print(f"Error processing audio: {e}")
+        print(f"❌ Error processing audio: {e}")
+        print(f"❌ Full traceback: {traceback.format_exc()}")
         return jsonify({'error': f'Error processing audio: {str(e)}'}), 500
 
 @app.route('/reset', methods=['POST'])
