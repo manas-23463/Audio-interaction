@@ -92,10 +92,20 @@ class ElevenLabsClient:
             try:
                 # Open the file and pass it to the API
                 with open(temp_file, 'rb') as audio_file:
-                    response = self.client.speech_to_text.convert(
-                        file=audio_file,
-                        model_id="scribe_v1"
-                    )
+                    # Try with English language specification first
+                    try:
+                        response = self.client.speech_to_text.convert(
+                            file=audio_file,
+                            model_id="scribe_v1",
+                            language="en"  # Specify English language
+                        )
+                    except Exception as lang_error:
+                        print(f"⚠️ Language specification failed, trying without: {lang_error}")
+                        # Fallback to default model
+                        response = self.client.speech_to_text.convert(
+                            file=audio_file,
+                            model_id="scribe_v1"
+                        )
                 
                 result = response.text
                 print(f"📝 STT Result: {result}")
