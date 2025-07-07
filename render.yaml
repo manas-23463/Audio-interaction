@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: audio-interaction-app
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --worker-class eventlet -w 1 app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: AGENT_ID
+        value: ""
+      - key: VOICE_ID
+        value: ""
+      - key: SAMPLE_RATE
+        value: "44100"
+      - key: CHUNK_SIZE
+        value: "1024"
+      - key: CHANNELS
+        value: "1"
+      - key: ENABLE_VOICE_CLONING
+        value: "false"
+      - key: ENABLE_CONVERSATION_LOGGING
+        value: "true"
+      - key: LOG_FILE_PATH
+        value: "conversation_log.txt" 
