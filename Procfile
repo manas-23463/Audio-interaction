@@ -1,1 +1,1 @@
-web: gunicorn --bind 0.0.0.0:$PORT app_simple:app 
+web: gunicorn app_simple:app --bind 0.0.0.0:$PORT --workers 1 --worker-class sync --max-requests 100 --max-requests-jitter 10 --timeout 120 --keep-alive 2 --preload 

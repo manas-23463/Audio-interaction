@@ -8,6 +8,7 @@ from elevenlabs.text_to_speech import client as tts_client
 from elevenlabs.speech_to_text import client as stt_client
 from config import Config
 import traceback
+import gc
 
 class ElevenLabsClient:
     def __init__(self):
@@ -66,6 +67,8 @@ class ElevenLabsClient:
             audio_bytes = b""
             for chunk in response:
                 audio_bytes += chunk
+                # Clear chunk from memory immediately
+                del chunk
             
             print(f"🎵 Generated {len(audio_bytes)} bytes of PCM audio")
             return audio_bytes
@@ -144,6 +147,10 @@ class ElevenLabsClient:
                 
                 result = response.text
                 print(f"📝 STT Result: {result}")
+                
+                # Clear response from memory
+                del response
+                gc.collect()
                 
                 # If result is still in Hindi script, try to convert common patterns
                 if any(char in result for char in ['अ', 'आ', 'इ', 'ई', 'उ', 'ऊ', 'ए', 'ऐ', 'ओ', 'औ', 'क', 'ख', 'ग', 'घ', 'च', 'छ', 'ज', 'झ', 'ट', 'ठ', 'ड', 'ढ', 'ण', 'त', 'थ', 'द', 'ध', 'न', 'प', 'फ', 'ब', 'भ', 'म', 'य', 'र', 'ल', 'व', 'श', 'ष', 'स', 'ह', 'ड़', 'ढ़', '़', '्', 'ं', 'ः']):
